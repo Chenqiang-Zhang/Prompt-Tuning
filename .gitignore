@@ -1,0 +1,10 @@
+# data (downloaded / derived from RealPersonaChat; regenerate via setup)
+/data/
+# training artifacts
+/outputs/
+# python
+__pycache__/
+*.pyc
+.venv/
+# os
+.DS_Store
