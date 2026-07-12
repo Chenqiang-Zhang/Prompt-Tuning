@@ -5,9 +5,17 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "=== 1. Python deps ==="
-# On a CUDA host, the default PyPI torch wheel already bundles CUDA.
 pip install -U pip
-pip install -r requirements.txt
+# Install a CUDA torch wheel matched to the driver. cu121 wheels need driver
+# >=525, so they run on common lab drivers (e.g. 535 / CUDA 12.2). Override the
+# index with TORCH_INDEX_URL if your driver needs a different build.
+TORCH_INDEX_URL="${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cu121}"
+if python -c "import torch" 2>/dev/null; then
+  echo "torch already present, skipping torch install"
+else
+  pip install torch --index-url "$TORCH_INDEX_URL"
+fi
+pip install -r requirements.txt   # torch>=2.3 already satisfied by the line above
 
 echo "=== 2. Sanity: GPU visible? ==="
 python - <<'PY'
