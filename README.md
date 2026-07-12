@@ -44,18 +44,31 @@ paper に合わせ各ペルソナ 525 ペアにキャップ（`--max_pairs_per_p
 
 ## セットアップ
 
-### クラウド（CUDA GPU）— 推奨
+### 共有 CUDA サーバー（Docker）— 推奨
+
+ホスト環境を汚さず、1枚だけ GPU を占有して隔離実行する:
 
 ```bash
-git clone <this-repo-url> && cd Prompt-Tuning
-bash scripts/setup_cloud.sh          # 依存導入 + データDL + 整形を一括
-# 実験（CUDA では bfloat16 推奨）
-scripts/run_experiment.sh Qwen/Qwen2.5-3B 15 qwen3b bfloat16
+git clone <this-repo-url> ~/projects/Prompt-Tuning && cd ~/projects/Prompt-Tuning
+bash scripts/setup_data.sh                       # データDL+整形（stdlib のみ、容器不要）
+scripts/docker_run.sh                            # 初回に自動でイメージ build → shell に入る
+# 容器内 or docker_run 経由で実験（CUDA は bfloat16 推奨）
+GPU=3 scripts/docker_run.sh bash scripts/run_experiment.sh Qwen/Qwen2.5-3B 15 qwen3b bfloat16
 ```
 
-`setup_cloud.sh` は GPU 検出 → `pip install -r requirements.txt`（CUDA ホストでは
-既定の torch wheel が CUDA 対応）→ RealPersonaChat DL → `prepare_data.py` を実行する。
-`--device auto` が CUDA を自動選択する。
+- イメージ（[docker/Dockerfile](docker/Dockerfile)）は torch2.5.1+CUDA12.1 ベースに依存を焼き込む。
+  コードは bind-mount なので編集に rebuild 不要。
+- [scripts/docker_run.sh](scripts/docker_run.sh) は `--gpus device=$GPU`（既定 GPU3）で1枚だけ割当、
+  **ホストユーザー権限**で実行（root 所有ファイルを残さない）、HF モデルキャッシュは
+  リポジトリ内 `./.hfcache` に永続化。
+- `--device auto` が容器内で CUDA を自動選択する。
+
+### 単独ホスト（Docker なし、pip 直接）
+
+```bash
+bash scripts/setup_cloud.sh          # GPU検出 + CUDA torch + 依存 + データDL + 整形
+scripts/run_experiment.sh Qwen/Qwen2.5-3B 15 qwen3b bfloat16
+```
 
 ### ローカル（手動）
 
