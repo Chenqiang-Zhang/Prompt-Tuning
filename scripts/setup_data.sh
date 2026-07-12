@@ -11,7 +11,8 @@ if [ ! -d data/real-persona-chat-1.0.0 ]; then
   echo ">>> download RealPersonaChat v1.0.0 (public, 24MB)"
   curl -sL -o data/rpc.zip \
     https://github.com/nu-dialogue/real-persona-chat/archive/refs/tags/v1.0.0.zip
-  (cd data && unzip -q -o rpc.zip)
+  # unzip via python stdlib (no `unzip` binary needed on minimal hosts)
+  "$PY" -c "import zipfile; zipfile.ZipFile('data/rpc.zip').extractall('data')"
 fi
 
 echo ">>> prepare splits (top-3 personas, 525 pairs each, 1:1 general)"
