@@ -36,6 +36,13 @@ SCENARIOS = [
          "ちなみにどちらにお住まいなんですか？",
          "福岡いいですね！おすすめの場所はありますか？",
      ]},
+    {"title": "记忆探针（第1轮给事实，末轮追问）",
+     "turns": [
+         "私の飼っている猫の名前はミケです。かわいいでしょう？",
+         "そうですね、三毛猫なんです。ところで最近読んだ本のお話をしましょう。",
+         "私は東野圭吾さんが好きです。あなたのおすすめも教えてください。",
+         "なるほど、参考にします。ところで、さっき話した私の猫の名前、覚えていますか？",
+     ]},
 ]
 
 
@@ -53,6 +60,8 @@ def main():
     ap.add_argument("--dtype", default="bfloat16", choices=["float32", "bfloat16"])
     ap.add_argument("--device", default="auto")
     ap.add_argument("--out", help="optional jsonl transcript")
+    ap.add_argument("--debug", action="store_true",
+                    help="print the exact decoded context fed to the model each turn")
     args = ap.parse_args()
 
     device = pick_device(args.device)
@@ -81,6 +90,10 @@ def main():
                 ids += tok(t, add_special_tokens=False)["input_ids"]
             ids += sep_ids
             ids = ids[-args.max_ctx_tokens:]
+            if args.debug:
+                print(f"   ┌─ context fed ({len(ids)} tok) ─────────────")
+                print("   │ " + tok.decode(ids).replace(chr(10), " ⏎ "))
+                print("   └────────────────────────────────────────────")
             input_ids = torch.tensor([ids], device=device)
             attn = torch.ones_like(input_ids)
             gen = dict(max_new_tokens=args.max_new_tokens, do_sample=False, num_beams=1,
