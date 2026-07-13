@@ -83,7 +83,7 @@ def main():
             messages.append({"role": "assistant", "content": resp})
             turn_log.append({"user": u, "bot": resp, "ctx_tokens": int(in_len)})
             print(f"👤 {u}")
-            print(f"🤖 {resp}   [ctx={prompt_ids.shape[1]} tok]")
+            print(f"🤖 {resp}   [ctx={in_len} tok]")
         transcripts.append({"title": sc["title"], "turns": turn_log})
 
     if args.out:
