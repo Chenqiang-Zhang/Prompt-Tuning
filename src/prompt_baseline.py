@@ -32,8 +32,12 @@ NATURALISTIC = [
 ]
 
 
-def build_system(persona_text):
-    return "\n".join(NATURALISTIC).replace("{PERSONA}", persona_text)
+def build_system(persona_text, reply_lang=""):
+    lines = list(NATURALISTIC)
+    if reply_lang:
+        lines.append(f"Always write your replies in {reply_lang} only, "
+                     f"regardless of the language of these instructions.")
+    return "\n".join(lines).replace("{PERSONA}", persona_text)
 
 
 def main():
@@ -46,6 +50,8 @@ def main():
     ap.add_argument("--device", default="auto")
     ap.add_argument("--persona_oneline", action="store_true",
                     help="join persona sentences with spaces instead of newlines")
+    ap.add_argument("--reply_lang", default="",
+                    help="e.g. 'Japanese' — appends a language-lock instruction")
     ap.add_argument("--out")
     ap.add_argument("--debug", action="store_true")
     args = ap.parse_args()
@@ -58,7 +64,7 @@ def main():
 
     lines = [l.strip() for l in open(args.persona_file) if l.strip()]
     persona_text = (" ".join(lines) if args.persona_oneline else "\n".join(lines))
-    system = build_system(persona_text)
+    system = build_system(persona_text, args.reply_lang)
     if args.debug:
         print("┌─ SYSTEM PROMPT ─────────────────────────────\n" + system +
               "\n└─────────────────────────────────────────────\n")
