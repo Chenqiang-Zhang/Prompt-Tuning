@@ -26,7 +26,10 @@ mkdir -p .hfcache outputs
 TTY=""
 [ -t 0 ] && TTY="-it"
 
-exec docker run --rm $TTY \
+PORTMAP=""
+[ -n "${PORT:-}" ] && PORTMAP="-p ${PORT}:${PORT}"
+
+exec docker run --rm $TTY $PORTMAP \
   --gpus "device=${GPU}" \
   --user "$(id -u):$(id -g)" \
   -e HOME=/workspace \
