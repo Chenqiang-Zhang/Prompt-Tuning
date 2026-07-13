@@ -93,5 +93,9 @@ class SoftPromptDialogue(nn.Module):
 
     def load_prompt(self, path, map_location="cpu"):
         state = torch.load(path, map_location=map_location)
-        with torch.no_grad():
-            self.soft_prompt.copy_(state["soft_prompt"].to(self.soft_prompt.device))
+        saved = state["soft_prompt"]
+        # Rebuild the parameter to the saved shape so callers don't need to know
+        # the trained prompt length ahead of time (it can differ from the default).
+        dev = self.soft_prompt.device
+        self.soft_prompt = torch.nn.Parameter(saved.to(dev).float())
+        self.prompt_len = state.get("prompt_len", saved.shape[0])

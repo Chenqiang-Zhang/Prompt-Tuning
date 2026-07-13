@@ -75,6 +75,11 @@ def main():
     ap.add_argument("--device", default="auto")
     ap.add_argument("--no_persona_init", action="store_true",
                     help="random init instead of persona-sentence embeddings")
+    ap.add_argument("--naturalistic_init", action="store_true",
+                    help="initialize the soft prompt from the full MMTT naturalistic "
+                         "system prompt (+persona), i.e. compile the explicit prompt in")
+    ap.add_argument("--reply_lang", default="",
+                    help="language lock appended to the naturalistic init text")
     args = ap.parse_args()
 
     device = pick_device(args.device)
@@ -86,10 +91,23 @@ def main():
         tok.pad_token = tok.eos_token
     base = AutoModelForCausalLM.from_pretrained(args.model, dtype=dtype).to(device)
 
+    persona_text = open(os.path.join(args.persona_dir, "persona.txt")).read().strip()
     init_text = None
-    if not args.no_persona_init:
-        init_text = open(os.path.join(args.persona_dir, "persona.txt")).read().strip()
-    model = SoftPromptDialogue(base, tok, prompt_len=args.prompt_len,
+    if args.naturalistic_init:
+        from persona_prompt import build_system
+        init_text = build_system(persona_text, args.reply_lang)
+    elif not args.no_persona_init:
+        init_text = persona_text
+
+    # Auto-size the soft prompt to fully hold the init text (no truncation) when
+    # --prompt_len 0; this "compiles" the whole explicit prompt into the prompt.
+    prompt_len = args.prompt_len
+    if prompt_len == 0:
+        n = len(tok(init_text, add_special_tokens=False)["input_ids"]) if init_text else 200
+        prompt_len = n
+        print(f"auto prompt_len = {prompt_len} (from init text)")
+
+    model = SoftPromptDialogue(base, tok, prompt_len=prompt_len,
                                init_text=init_text).to(device)
 
     n_train = sum(p.numel() for p in model.trainable_parameters())
