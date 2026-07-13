@@ -46,6 +46,10 @@ def main():
     ap.add_argument("--prompt_len", type=int, default=200)
     ap.add_argument("--max_new_tokens", type=int, default=40)
     ap.add_argument("--max_ctx_tokens", type=int, default=512)
+    ap.add_argument("--rep_penalty", type=float, default=1.0,
+                    help=">1.0 penalizes repetition (mitigates greedy loops)")
+    ap.add_argument("--no_repeat_ngram", type=int, default=0,
+                    help=">0 forbids repeating n-grams of this size")
     ap.add_argument("--dtype", default="bfloat16", choices=["float32", "bfloat16"])
     ap.add_argument("--device", default="auto")
     ap.add_argument("--out", help="optional jsonl transcript")
@@ -79,10 +83,13 @@ def main():
             ids = ids[-args.max_ctx_tokens:]
             input_ids = torch.tensor([ids], device=device)
             attn = torch.ones_like(input_ids)
-            out = model.generate(input_ids=input_ids, attention_mask=attn,
-                                 max_new_tokens=args.max_new_tokens, do_sample=False,
-                                 num_beams=1, pad_token_id=tok.pad_token_id,
-                                 eos_token_id=tok.eos_token_id)
+            gen = dict(max_new_tokens=args.max_new_tokens, do_sample=False, num_beams=1,
+                       pad_token_id=tok.pad_token_id, eos_token_id=tok.eos_token_id)
+            if args.rep_penalty != 1.0:
+                gen["repetition_penalty"] = args.rep_penalty
+            if args.no_repeat_ngram > 0:
+                gen["no_repeat_ngram_size"] = args.no_repeat_ngram
+            out = model.generate(input_ids=input_ids, attention_mask=attn, **gen)
             resp = tok.decode(out[0], skip_special_tokens=True).split("\n")[0].strip()
             history.append(resp)
             turn_log.append({"user": u, "bot": resp, "ctx_tokens": len(ids)})
