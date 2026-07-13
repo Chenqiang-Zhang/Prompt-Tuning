@@ -80,6 +80,10 @@ def main():
                          "system prompt (+persona), i.e. compile the explicit prompt in")
     ap.add_argument("--reply_lang", default="",
                     help="language lock appended to the naturalistic init text")
+    ap.add_argument("--grad_ckpt", action="store_true",
+                    help="gradient checkpointing: recompute activations to save "
+                         "memory (needed for long soft prompts, since gradients "
+                         "flow through the whole frozen model to the prompt)")
     args = ap.parse_args()
 
     device = pick_device(args.device)
@@ -106,6 +110,11 @@ def main():
         n = len(tok(init_text, add_special_tokens=False)["input_ids"]) if init_text else 200
         prompt_len = n
         print(f"auto prompt_len = {prompt_len} (from init text)")
+
+    if args.grad_ckpt:
+        base.config.use_cache = False
+        base.gradient_checkpointing_enable()
+        base.enable_input_require_grads()  # so checkpointing works with frozen weights
 
     model = SoftPromptDialogue(base, tok, prompt_len=prompt_len,
                                init_text=init_text).to(device)
