@@ -70,17 +70,18 @@ def main():
         turn_log = []
         for u in sc["turns"]:
             messages.append({"role": "user", "content": u})
-            prompt_ids = tok.apply_chat_template(messages, add_generation_prompt=True,
-                                                 return_tensors="pt").to(device)
+            enc = tok.apply_chat_template(messages, add_generation_prompt=True,
+                                          return_tensors="pt", return_dict=True).to(device)
+            in_len = enc["input_ids"].shape[1]
             gen = dict(max_new_tokens=args.max_new_tokens, do_sample=False, num_beams=1,
                        pad_token_id=tok.pad_token_id or tok.eos_token_id)
             if args.rep_penalty != 1.0:
                 gen["repetition_penalty"] = args.rep_penalty
             with torch.no_grad():
-                out = base.generate(prompt_ids, attention_mask=torch.ones_like(prompt_ids), **gen)
-            resp = tok.decode(out[0, prompt_ids.shape[1]:], skip_special_tokens=True).strip()
+                out = base.generate(**enc, **gen)
+            resp = tok.decode(out[0, in_len:], skip_special_tokens=True).strip()
             messages.append({"role": "assistant", "content": resp})
-            turn_log.append({"user": u, "bot": resp, "ctx_tokens": int(prompt_ids.shape[1])})
+            turn_log.append({"user": u, "bot": resp, "ctx_tokens": int(in_len)})
             print(f"👤 {u}")
             print(f"🤖 {resp}   [ctx={prompt_ids.shape[1]} tok]")
         transcripts.append({"title": sc["title"], "turns": turn_log})
