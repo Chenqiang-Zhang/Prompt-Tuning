@@ -71,7 +71,7 @@ def main():
     ap.add_argument("--batch_size", type=int, default=8)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--max_len", type=int, default=128)
-    ap.add_argument("--dtype", default="float32", choices=["float32", "bfloat16"])
+    ap.add_argument("--dtype", default="float32", choices=["float32", "bfloat16", "float16"])
     ap.add_argument("--device", default="auto")
     ap.add_argument("--no_persona_init", action="store_true",
                     help="random init instead of persona-sentence embeddings")
